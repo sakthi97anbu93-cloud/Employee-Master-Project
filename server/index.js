@@ -10,6 +10,7 @@ const Employee = require("./models/Employee");
 
 
 
+
 mongoose.connect("mongodb://127.0.0.1:27017/employeedb")
 .then(() => console.log("MongoDB Connected"))
 .catch(err => console.log(err));

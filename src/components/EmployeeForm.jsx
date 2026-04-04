@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -18,6 +19,8 @@ function EmployeeForm() {
     const [list, setList] = useState([]);
     const [error, setError] = useState({});
     const [editIndex, setEditIndex] = useState(null);
+    const [touched, setTouched] = useState({});
+
     const navigate = useNavigate();
 
     const departments = ["HR", "Admin", "IT", "Finance", "Marketing", "Support"];
@@ -29,29 +32,105 @@ function EmployeeForm() {
             .catch(err => console.log(err));
     }, []);
 
-   
+
     useEffect(() => {
         const isLogin = localStorage.getItem("login");
         if (!isLogin) {
             navigate("/");
         }
-    }, [navigate]);
+    },
+        [navigate]);
 
     const handleChange = (e) => {
-        setForm({ ...form, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+
+        setForm({ ...form, [name]: value });
+
+        validateField(name, value);
+    };
+    const validateField = (name, value) => {
+        let err = { ...error };
+
+        if (name === "code") {
+            if (!value.match(/^[0-9]*$/)) {
+                err.code = "Code must be numeric";
+            } else {
+                delete err.code;
+            }
+        }
+
+        if (name === "name") {
+            if (!value.match(/^[A-Za-z ]*$/)) {
+                err.name = "Only alphabets allowed";
+            } else {
+                delete err.name;
+            }
+        }
+
+        if (name === "department") {
+            value ? delete err.department : err.department = "Select department";
+        }
+
+        if (name === "designation") {
+            value ? delete err.designation : err.designation = "Select designation";
+        }
+
+        if (name === "dob") {
+            const today = new Date();
+            const dob = new Date(value);
+            let age = today.getFullYear() - dob.getFullYear();
+
+            if (age < 18) {
+                err.dob = "Age must be at least 18";
+            } else {
+                delete err.dob;
+            }
+        }
+
+        if (name === "doj") {
+            const today = new Date().toISOString().split("T")[0];
+            if (value < today) {
+                err.doj = "DOJ cannot be past date";
+            } else {
+                delete err.doj;
+            }
+        }
+
+        if (name === "gender") {
+            value ? delete err.gender : err.gender = "Select gender";
+        }
+
+        if (name === "salary") {
+            if (!value.match(/^\d{0,7}(\.\d{0,2})?$/)) {
+                err.salary = "Max 7 digits with decimal";
+            } else {
+                delete err.salary;
+            }
+        }
+
+        setError(err);
+    };
+    const handleBlur = (e) => {
+        const { name } = e.target;
+
+        setTouched({ ...touched, [name]: true });
+
+        validateField(name, form[name]);
     };
 
-    
     const validate = () => {
         let err = {};
 
         if (!form.code.match(/^[0-9]+$/)) err.code = "Code must be numeric";
 
+
         if (list.find(item => item.code === form.code && item._id !== list[editIndex]?._id))
             err.code = "Duplicate code not allowed";
 
         if (!form.name.match(/^[A-Za-z ]+$/)) err.name = "Only alphabets allowed";
+
         if (!form.department) err.department = "Select department";
+
         if (!form.designation) err.designation = "Select designation";
 
         const today = new Date();
@@ -63,13 +142,14 @@ function EmployeeForm() {
         if (form.doj < day) err.doj = "DOJ cannot be past date";
 
         if (!form.gender) err.gender = "Select gender";
+
         if (!form.salary.match(/^\d{1,7}(\.\d{1,2})?$/))
             err.salary = "Max 7 digits with decimal";
 
         return err;
     };
 
-   
+
     const handleAdd = () => {
         const err = validate();
         if (Object.keys(err).length > 0) {
@@ -112,7 +192,7 @@ function EmployeeForm() {
         setEditIndex(index);
     };
 
-    
+
     const handleDelete = (index) => {
         const id = list[index]._id;
 
@@ -120,7 +200,7 @@ function EmployeeForm() {
             .then(() => setList(list.filter(item => item._id !== id)));
     };
 
-   
+
     const handleDeleteAll = () => {
         axios.delete("http://localhost:5000/employees")
             .then(() => setList([]));
@@ -142,49 +222,49 @@ function EmployeeForm() {
 
                     <div className="col-md-4">
                         <label>Code</label>
-                        <input name="code" value={form.code} onChange={handleChange} className="form-control" />
-                        <small className="text-danger">{error.code}</small>
+                        <input name="code" value={form.code} onChange={handleChange} onBlur={handleBlur} className="form-control" />
+                        <small className="text-danger">{touched.code && error.code}</small>
                     </div>
 
                     <div className="col-md-4">
                         <label>Name</label>
-                        <input name="name" value={form.name} onChange={handleChange} className="form-control" />
-                        <small className="text-danger">{error.name}</small>
+                        <input name="name" value={form.name} onChange={handleChange} onBlur={handleBlur} className="form-control" />
+                        <small className="text-danger">{touched.name && error.name}</small>
                     </div>
 
                     <div className="col-md-4">
                         <label>Department</label>
-                        <select name="department" value={form.department} onChange={handleChange} className="form-control">
+                        <select name="department" value={form.department} onChange={handleChange} onBlur={handleBlur} className="form-control">
                             <option value="">Select</option>
                             {departments.map((d, i) => <option key={i}>{d}</option>)}
                         </select>
-                        <small className="text-danger">{error.department}</small>
+                        <small className="text-danger">{touched.department && error.department}</small>
                     </div>
 
                     <div className="col-md-4 mt-2">
                         <label>Designation</label>
-                        <select name="designation" value={form.designation} onChange={handleChange} className="form-control">
+                        <select name="designation" value={form.designation} onChange={handleChange} onBlur={handleBlur} className="form-control">
                             <option value="">Select</option>
                             {designations.map((d, i) => <option key={i}>{d}</option>)}
                         </select>
-                        <small className="text-danger">{error.designation}</small>
+                        <small className="text-danger">{touched.designation && error.designation}</small>
                     </div>
 
                     <div className="col-md-4 mt-2">
                         <label>DOB</label>
-                        <input type="date" name="dob" value={form.dob} onChange={handleChange} className="form-control" />
-                        <small className="text-danger">{error.dob}</small>
+                        <input type="date" name="dob" value={form.dob} onChange={handleChange} onBlur={handleBlur} className="form-control" />
+                        <small className="text-danger">{touched.dob && error.dob}</small>
                     </div>
 
                     <div className="col-md-4 mt-2">
                         <label>DOJ</label>
-                        <input type="date" name="doj" value={form.doj} onChange={handleChange} className="form-control" />
-                        <small className="text-danger">{error.doj}</small>
+                        <input type="date" name="doj" value={form.doj} onChange={handleChange} onBlur={handleBlur} className="form-control" />
+                        <small className="text-danger">{touched.doj && error.doj}</small>
                     </div>
 
                     <div className="col-md-4 mt-2">
                         <label>Gender</label>
-                        <select name="gender" value={form.gender} onChange={handleChange} className="form-control">
+                        <select name="gender" value={form.gender} onChange={handleChange} onBlur={handleBlur} className="form-control">
                             <option value="">Select</option>
                             <option>Male</option>
                             <option>Female</option>
@@ -194,8 +274,8 @@ function EmployeeForm() {
 
                     <div className="col-md-4 mt-2">
                         <label>Salary</label>
-                        <input name="salary" value={form.salary} onChange={handleChange} className="form-control" />
-                        <small className="text-danger">{error.salary}</small>
+                        <input name="salary" value={form.salary} onChange={handleChange} onBlur={handleBlur} className="form-control" />
+                        <small className="text-danger">{touched.salary && error.salary}</small>
                     </div>
 
                     <div className="col-md-4 mt-2 d-flex gap-2 align-items-end">
@@ -257,4 +337,4 @@ function EmployeeForm() {
     );
 }
 
-export default EmployeeForm;
+export default EmployeeForm;    
